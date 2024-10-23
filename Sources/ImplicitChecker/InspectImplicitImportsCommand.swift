@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 @main
 struct InspectImplicitImportsCommand: AsyncParsableCommand {
@@ -14,9 +15,16 @@ struct InspectImplicitImportsCommand: AsyncParsableCommand {
     var path: String
 
     func run() async throws {
-        let adapter = SPMAdapter(packagePath: path)
-        guard let package = adapter.fetchTargetsDetails() else { return }
-        
+        guard let urlPath = URL(string: path) else { return }
+        var adapter: ProjectAdapter? = nil
+
+        if urlPath.pathExtension == "swift" {
+            adapter = SPMAdapter()
+        } else if urlPath.pathExtension == "xcodeproj" {
+            adapter = XcodeAdapter()
+        }
+        guard let package = try adapter?.fetchTargetsDetails(projURL: urlPath) else { return }
+
         try await InspectImplicitImportsService().scan(package: package)
     }
 }

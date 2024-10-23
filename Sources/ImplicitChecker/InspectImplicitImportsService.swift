@@ -7,7 +7,7 @@ struct InspectImplicitImportsServiceErrorIssue: Equatable {
 
 enum InspectImplicitImportsServiceError: Error, CustomStringConvertible, Equatable {
     case implicitImportsFound([InspectImplicitImportsServiceErrorIssue])
-    
+
     public var description: String {
         switch self {
         case let .implicitImportsFound(issues):
@@ -40,11 +40,11 @@ final class InspectImplicitImportsService {
     }
 
     private func lint(package: PackageDescription) async throws -> [InspectImplicitImportsServiceErrorIssue] {
-        let allTargetNames = Set(package.targets.flatMap { $0.productDependencies + $0.targetDependencies })
+        let allTargetNames = Set(package.targets.flatMap { $0.targetDependencies })
         var implicitTargetImports: [String: Set<String>] = [:]
         for target in package.targets {
             let sourceDependencies = try await targetScanner.imports(for: target)
-            let explicitTargetDependencies = Set(target.productDependencies + target.targetDependencies)
+            let explicitTargetDependencies = Set(target.targetDependencies)
             let implicitImports = sourceDependencies
                 .intersection(allTargetNames)
                 .subtracting(explicitTargetDependencies)
@@ -53,7 +53,7 @@ final class InspectImplicitImportsService {
             }
         }
         return implicitTargetImports.map { target, implicitDependencies in
-            return InspectImplicitImportsServiceErrorIssue(
+            InspectImplicitImportsServiceErrorIssue(
                 target: target,
                 implicitDependencies: implicitDependencies
             )

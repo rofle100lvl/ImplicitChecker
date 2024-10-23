@@ -12,6 +12,7 @@ let package = Package(
         .executable(name: "ImplicitChecker", targets: ["ImplicitChecker"]),
     ],
     dependencies: [
+        .package(url: "https://github.com/tuist/XcodeProj", from: "8.20.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", exact: "1.4.0"),
     ],
     targets: [
@@ -21,10 +22,12 @@ let package = Package(
             name: "ImplicitChecker",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "XcodeProj", package: "XcodeProj"),
             ]
         ),
         .testTarget(
             name: "ImplicitCheckerTests",
-            dependencies: ["ImplicitChecker"]),
+            dependencies: ["ImplicitChecker"]
+        ),
     ]
 )
