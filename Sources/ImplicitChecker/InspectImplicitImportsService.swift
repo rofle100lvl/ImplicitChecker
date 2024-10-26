@@ -31,7 +31,7 @@ final class InspectImplicitImportsService {
         self.targetScanner = targetScanner
     }
 
-    func scan(package: PackageDescription) async throws {
+    func scan(package: ProjectDescription) async throws {
         let issues = try await lint(package: package)
         guard issues.isEmpty else {
             throw InspectImplicitImportsServiceError.implicitImportsFound(issues)
@@ -39,7 +39,7 @@ final class InspectImplicitImportsService {
         print("We did not find any implicit dependencies in your project.")
     }
 
-    private func lint(package: PackageDescription) async throws -> [InspectImplicitImportsServiceErrorIssue] {
+    private func lint(package: ProjectDescription) async throws -> [InspectImplicitImportsServiceErrorIssue] {
         let allTargetNames = Set(package.targets.flatMap { $0.targetDependencies })
         var implicitTargetImports: [String: Set<String>] = [:]
         for target in package.targets {

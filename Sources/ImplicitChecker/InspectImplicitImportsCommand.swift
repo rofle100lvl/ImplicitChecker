@@ -1,6 +1,10 @@
 import ArgumentParser
 import Foundation
 
+enum InspectImplicitImportsCommandError: Error {
+    case unknownFormat
+}
+
 @main
 struct InspectImplicitImportsCommand: AsyncParsableCommand {
     static var configuration: CommandConfiguration {
@@ -23,8 +27,9 @@ struct InspectImplicitImportsCommand: AsyncParsableCommand {
         } else if urlPath.pathExtension == "xcodeproj" {
             adapter = XcodeAdapter()
         }
-        guard let package = try adapter?.fetchTargetsDetails(projURL: urlPath) else { return }
+        guard let adapter else { throw InspectImplicitImportsCommandError.unknownFormat }
 
+        let package = try adapter.fetchTargetsDetails(projURL: urlPath)
         try await InspectImplicitImportsService().scan(package: package)
     }
 }

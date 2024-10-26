@@ -1,3 +1,3 @@
-struct PackageDescription: Codable {
+struct ProjectDescription: Codable {
     let targets: [TargetDescription]
 }

@@ -2,36 +2,29 @@ import Foundation
 import XcodeProj
 
 final class XcodeAdapter: ProjectAdapter {
-    func fetchTargetsDetails(projURL: URL) throws -> PackageDescription? {
+    func fetchTargetsDetails(projURL: URL) throws -> ProjectDescription {
         let proj = try XcodeProj(path: .init(projURL.path()))
-        return PackageDescription(targets: proj.pbxproj.nativeTargets
-            .map {
-                let moduleName = $0.name
+        let targets = try proj.pbxproj.nativeTargets
+            .tryMap { target in
+                let moduleName = target.name
 
-                let dependencies = $0.dependencies.compactMap { $0.name } +
-                    ($0.packageProductDependencies ?? []).compactMap { $0.productName }
-                var moduleFiles = [URL]()
+                let packageDependencies = (target.packageProductDependencies ?? [])
+                    .compactMap { $0.productName }
 
-                let sourceBuildPhase = $0.buildPhases.filter {
-                    $0 is PBXSourcesBuildPhase
-                }.first
+                let dependencies = target.dependencies.compactMap { $0.name } + packageDependencies
 
-                if let sourceBuildPhase,
-                   let files = sourceBuildPhase.files
-                {
-                    moduleFiles = files
-                        .map {
-                            do {
-                                return try $0.file?.fullPath(sourceRoot: projURL.deletingLastPathComponent().path())
-                            } catch {
-                                return nil
-                            }
+                let moduleFiles = try target.sourceFiles()
+                    .map {
+                        do {
+                            return try $0.fullPath(sourceRoot: projURL.deletingLastPathComponent().path())
+                        } catch {
+                            return nil
                         }
-                        .compactMap { $0 }
-                        .compactMap {
-                            URL(fileURLWithPath: $0)
-                        }
-                }
+                    }
+                    .compactMap { $0 }
+                    .compactMap {
+                        URL(fileURLWithPath: $0)
+                    }
 
                 return TargetDescription(
                     name: moduleName,
@@ -39,6 +32,6 @@ final class XcodeAdapter: ProjectAdapter {
                     targetDependencies: dependencies
                 )
             }
-        )
+        return ProjectDescription(targets: targets)
     }
 }

@@ -1,8 +1,11 @@
 import Foundation
 
-// TODO: Make Errors for SPMAdapter
+enum SPMAdapterError: Error {
+    case pipeDataIsNotParsable
+}
+
 final class SPMAdapter: ProjectAdapter {
-    func fetchTargetsDetails(projURL: URL) -> PackageDescription? {
+    func fetchTargetsDetails(projURL: URL) throws -> ProjectDescription {
         let packagePath = projURL.deletingLastPathComponent().path()
         let task = Process()
         task.launchPath = "/usr/bin/env"
@@ -13,20 +16,15 @@ final class SPMAdapter: ProjectAdapter {
         task.standardOutput = pipe
         task.standardError = Pipe()
 
-        do {
-            try task.run()
-        } catch {
-            print("Error running process: \(error.localizedDescription)")
-            return nil
-        }
+        try task.run()
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let jsonString = String(data: data, encoding: .utf8) else {
-            return nil
+            throw SPMAdapterError.pipeDataIsNotParsable
         }
 
-        guard let packageDescription = parsePackageDescription(jsonString: jsonString) else { return nil }
-        return PackageDescription(targets: packageDescription.targets.map {
+        let packageDescription = try parsePackageDescription(jsonString: jsonString)
+        return ProjectDescription(targets: packageDescription.targets.map {
             TargetDescription(
                 name: $0.name,
                 sources: $0.sources.map { source in packagePath + "/" + source },
@@ -35,16 +33,11 @@ final class SPMAdapter: ProjectAdapter {
         })
     }
 
-    private func parsePackageDescription(jsonString: String) -> SPMPackageDescription? {
+    private func parsePackageDescription(jsonString: String) throws -> SPMPackageDescription {
         guard let data = jsonString.data(using: .utf8) else {
-            return nil
+            throw SPMAdapterError.pipeDataIsNotParsable
         }
 
-        do {
-            return try JSONDecoder().decode(SPMPackageDescription.self, from: data)
-        } catch {
-            print("Error parsing JSON: \(error.localizedDescription)")
-            return nil
-        }
+        return try JSONDecoder().decode(SPMPackageDescription.self, from: data)
     }
 }
